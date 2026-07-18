@@ -4,24 +4,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Video Call</title>
-
     <link rel="stylesheet" href="style.css">
-
     <script src="/socket.io/socket.io.js"></script>
 </head>
-
 <body>
 
 <div class="container">
-
     <h2>📹 مكالمة فيديو</h2>
 
     <div class="room">
         <input id="roomInput" placeholder="رقم الغرفة">
         <button id="createBtn">إنشاء غرفة</button>
         <button id="joinBtn">انضمام</button>
-        <!-- زر إنهاء المكالمة المضاف -->
-        <button id="hangupBtn" style="background-color: #ff4d4d; color: white;">إنهاء المكالمة</button>
+        <button id="hangupBtn" class="hangup-btn">إنهاء المكالمة</button>
     </div>
 
     <div class="videos">
@@ -35,17 +30,17 @@
         </div>
     </div>
 
-    <!-- واجهة الدردشة المضافة -->
-    <div id="chat-container" style="margin-top: 20px; border-top: 1px solid #ccc; padding-top: 10px;">
-        <h3>الدردشة</h3>
-        <div id="messages" style="height: 150px; overflow-y: scroll; border: 1px solid #ddd; padding: 10px; margin-bottom: 10px; background: #f9f9f9;"></div>
-        <input type="text" id="messageInput" placeholder="اكتب رسالتك...">
-        <button id="sendBtn">إرسال</button>
+    <!-- واجهة الدردشة -->
+    <div id="chat-container" class="chat-container">
+        <h3>💬 الدردشة</h3>
+        <div id="messages" class="messages-box"></div>
+        <div class="chat-controls">
+            <input type="text" id="messageInput" placeholder="اكتب رسالتك...">
+            <button id="sendBtn">إرسال</button>
+        </div>
     </div>
-
 </div>
 
 <script src="app.js"></script>
-
 </body>
 </html>

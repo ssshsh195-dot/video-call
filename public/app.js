@@ -6,7 +6,7 @@ const remoteVideo = document.getElementById("remoteVideo");
 const roomInput = document.getElementById("roomInput");
 const createBtn = document.getElementById("createBtn");
 const joinBtn = document.getElementById("joinBtn");
-const hangupBtn = document.getElementById("hangupBtn"); // زر الإنهاء
+const hangupBtn = document.getElementById("hangupBtn"); 
 
 // عناصر الدردشة
 const messageInput = document.getElementById("messageInput");
@@ -22,21 +22,9 @@ const configuration = {
     iceServers: [
         { urls: "stun:stun.l.google.com:19302" },
         { urls: "stun:stun1.l.google.com:19302" },
-        {
-            urls: "turn:openrelay.metered.ca:80",
-            username: "openrelayproject",
-            credential: "openrelayproject"
-        },
-        {
-            urls: "turn:openrelay.metered.ca:443",
-            username: "openrelayproject",
-            credential: "openrelayproject"
-        },
-        {
-            urls: "turn:openrelay.metered.ca:443?transport=tcp",
-            username: "openrelayproject",
-            credential: "openrelayproject"
-        }
+        { urls: "turn:openrelay.metered.ca:80", username: "openrelayproject", credential: "openrelayproject" },
+        { urls: "turn:openrelay.metered.ca:443", username: "openrelayproject", credential: "openrelayproject" },
+        { urls: "turn:openrelay.metered.ca:443?transport=tcp", username: "openrelayproject", credential: "openrelayproject" }
     ]
 };
 
@@ -82,7 +70,7 @@ function endCall() {
         socket.emit("hangup", room);
     }
     console.log("تم إنهاء المكالمة");
-    alert("تم إنهاء المكالمة");
+    alert("تم إنهاء المكالمة بنجاح");
 }
 
 hangupBtn.onclick = endCall;
@@ -99,19 +87,35 @@ socket.on("hangup", () => {
 // --- منطق الدردشة النصية ---
 sendBtn.onclick = () => {
     const message = messageInput.value.trim();
-    if (message && room) {
+    
+    // إضافة تنبيه في حال لم يدخل المستخدم غرفة بعد
+    if (!room) {
+        alert("يجب إنشاء غرفة أو الانضمام إليها أولاً قبل إرسال الرسائل!");
+        return;
+    }
+
+    if (message) {
         const msgElement = document.createElement("div");
         msgElement.innerText = "أنت: " + message;
+        msgElement.className = "message my-message"; // إضافة كلاس للتنسيق
         messagesDiv.appendChild(msgElement);
+        
         socket.emit("send-message", { room, message });
         messageInput.value = "";
+        
+        // التمرير التلقائي لأسفل المحادثة
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
     }
 };
 
 socket.on("receive-message", (message) => {
     const msgElement = document.createElement("div");
     msgElement.innerText = "صديقي: " + message;
+    msgElement.className = "message peer-message"; // إضافة كلاس للتنسيق
     messagesDiv.appendChild(msgElement);
+    
+    // التمرير التلقائي لأسفل المحادثة
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
 });
 
 // --- منطق الاتصال المرئي ---
