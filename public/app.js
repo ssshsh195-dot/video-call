@@ -6,6 +6,8 @@ const roomInput = document.getElementById("roomInput");
 const createBtn = document.getElementById("createBtn");
 const joinBtn = document.getElementById("joinBtn");
 const hangupBtn = document.getElementById("hangupBtn"); 
+// عنصر القائمة الجديد
+const participantsList = document.getElementById("participantsList");
 
 const messageInput = document.getElementById("messageInput");
 const sendBtn = document.getElementById("sendBtn");
@@ -35,6 +37,17 @@ async function startCamera() {
 }
 
 startCamera();
+
+// --- منطق المتصلين ---
+socket.on("update-user-list", (users) => {
+    participantsList.innerHTML = ""; // مسح القائمة الحالية لإعادة بنائها
+    users.forEach(id => {
+        const li = document.createElement("li");
+        // تمييز المستخدم الحالي في القائمة
+        li.innerText = (id === socket.id) ? "أنا (You)" : "عضو: " + id.substring(0, 5) + "...";
+        participantsList.appendChild(li);
+    });
+});
 
 // --- منطق الغرف ---
 function joinRoom() {
@@ -86,7 +99,6 @@ function createPeerConnection() {
         }
     };
 
-    // مراقبة حالة الاتصال للتشخيص
     peerConnection.oniceconnectionstatechange = () => {
         console.log("حالة الاتصال ICE:", peerConnection.iceConnectionState);
     };
@@ -114,7 +126,6 @@ socket.on("answer", async (answer) => {
 socket.on("candidate", async (candidate) => {
     try {
         if (peerConnection) {
-            // التحقق من وجود remoteDescription قبل الإضافة
             if (peerConnection.remoteDescription && peerConnection.remoteDescription.type) {
                 await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
             } else {

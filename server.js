@@ -17,6 +17,13 @@ app.get('*', (req, res) => {
 // مخزن لحفظ رقم الغرفة الخاص بكل مستخدم
 const socketRoomMap = {};
 
+// دالة مساعدة لإرسال قائمة المتصلين لجميع من في الغرفة
+function sendUserList(room) {
+    const clients = io.sockets.adapter.rooms.get(room);
+    const users = clients ? Array.from(clients) : [];
+    io.to(room).emit("update-user-list", users);
+}
+
 io.on("connection", (socket) => {
 
     socket.on("join-room", room => {
@@ -32,6 +39,9 @@ io.on("connection", (socket) => {
             socket.emit("joined");
             socket.to(room).emit("ready");
         }
+
+        // تحديث القائمة لكل من في الغرفة
+        sendUserList(room);
     });
 
     // أحداث الاتصال المرئي
@@ -50,23 +60,28 @@ io.on("connection", (socket) => {
         if (room) socket.to(room).emit("candidate", candidate);
     });
 
-    // أحداث الدردشة النصية الجديدة
+    // أحداث الدردشة النصية
     socket.on("send-message", ({ room, message }) => {
         socket.to(room).emit("receive-message", message);
     });
 
-    // حدث إنهاء المكالمة الجديد
+    // حدث إنهاء المكالمة
     socket.on("hangup", (room) => {
         socket.to(room).emit("hangup");
     });
 
     // تنظيف البيانات عند خروج المستخدم
     socket.on("disconnect", () => {
-        delete socketRoomMap[socket.id];
+        const room = socketRoomMap[socket.id];
+        if (room) {
+            delete socketRoomMap[socket.id];
+            // تحديث القائمة بعد خروج العضو
+            sendUserList(room);
+        }
     });
 
 });
 
 server.listen(3000, "0.0.0.0", () => {
-    console.log("Server running");
+    console.log("Server running on port 3000");
 });
