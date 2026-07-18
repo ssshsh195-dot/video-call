@@ -29,16 +29,9 @@ async function startCamera() {
         localVideo.srcObject = localStream;
 
     } catch (err) {
-
-    console.error(err);
-
-    alert(
-        err.name + "\n\n" +
-        err.message
-    );
-
-}
-
+        console.error(err);
+        alert(err.name + "\n\n" + err.message);
+    }
 }
 
 startCamera();
@@ -65,14 +58,65 @@ joinBtn.onclick = () => {
     socket.emit("join-room", room);
 };
 
+// ----------------------------------------------------
+// الأكواد الجديدة: إعداد الاتصال وتبادل الفيديو بين الجهازين
+// ----------------------------------------------------
+
+function createPeerConnection() {
+    peerConnection = new RTCPeerConnection(configuration);
+
+    // 1. إضافة الكاميرا والمايك الخاصين بك للاتصال
+    localStream.getTracks().forEach(track => {
+        peerConnection.addTrack(track, localStream);
+    });
+
+    // 2. استقبال فيديو الطرف الآخر وعرضه في الشاشة
+    peerConnection.ontrack = (event) => {
+        remoteVideo.srcObject = event.streams[0];
+    };
+
+    // 3. إرسال مسارات الاتصال (المرشحات) للسيرفر
+    peerConnection.onicecandidate = (event) => {
+        if (event.candidate) {
+            socket.emit("candidate", event.candidate);
+        }
+    };
+}
+
 socket.on("created", () => {
-    console.log("تم إنشاء الغرفة");
+    console.log("تم إنشاء الغرفة، بانتظار انضمام الطرف الآخر...");
 });
 
 socket.on("joined", () => {
-    console.log("تم الانضمام");
+    console.log("تم الانضمام للغرفة بنجاح");
 });
 
-socket.on("ready", () => {
-    console.log("الطرف الآخر جاهز");
+// عندما ينضم الطرف الآخر ويكون جاهزاً، نبدأ الاتصال
+socket.on("ready", async () => {
+    createPeerConnection();
+    const offer = await peerConnection.createOffer();
+    await peerConnection.setLocalDescription(offer);
+    socket.emit("offer", offer);
+});
+
+// الطرف الثاني يستقبل الطلب ويرد عليه
+socket.on("offer", async (offer) => {
+    if (!peerConnection) createPeerConnection();
+    await peerConnection.setRemoteDescription(offer);
+    
+    const answer = await peerConnection.createAnswer();
+    await peerConnection.setLocalDescription(answer);
+    socket.emit("answer", answer);
+});
+
+// الطرف الأول يستقبل الرد ويتم الاتصال
+socket.on("answer", async (answer) => {
+    await peerConnection.setRemoteDescription(answer);
+});
+
+// تبادل مسارات الشبكة بين الجهازين
+socket.on("candidate", async (candidate) => {
+    if (peerConnection) {
+        await peerConnection.addIceCandidate(candidate);
+    }
 });
