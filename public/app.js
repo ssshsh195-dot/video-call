@@ -11,10 +11,25 @@ let room = "";
 let localStream;
 let peerConnection;
 
+// إضافة خوادم TURN و STUN لضمان عمل الاتصال على كافة الشبكات
 const configuration = {
     iceServers: [
+        { urls: "stun:stun.l.google.com:19302" },
+        { urls: "stun:stun1.l.google.com:19302" },
         {
-            urls: "stun:stun.l.google.com:19302"
+            urls: "turn:openrelay.metered.ca:80",
+            username: "openrelayproject",
+            credential: "openrelayproject"
+        },
+        {
+            urls: "turn:openrelay.metered.ca:443",
+            username: "openrelayproject",
+            credential: "openrelayproject"
+        },
+        {
+            urls: "turn:openrelay.metered.ca:443?transport=tcp",
+            username: "openrelayproject",
+            credential: "openrelayproject"
         }
     ]
 };
@@ -28,13 +43,19 @@ async function startCamera() {
         localVideo.srcObject = localStream;
     } catch (err) {
         console.error(err);
-        alert(err.name + "\n\n" + err.message);
+        alert("يرجى السماح بالوصول للكاميرا والميكروفون لتتمكن من الاتصال.");
     }
 }
 
 startCamera();
 
 createBtn.onclick = () => {
+    // منع إنشاء الاتصال قبل عمل الكاميرا لتجنب الشاشة السوداء
+    if (!localStream) {
+        alert("يرجى الانتظار حتى تظهر صورتك على الشاشة أولاً.");
+        return;
+    }
+
     room = roomInput.value.trim();
     if (!room) {
         alert("اكتب رقم الغرفة");
@@ -44,6 +65,12 @@ createBtn.onclick = () => {
 };
 
 joinBtn.onclick = () => {
+    // منع الانضمام قبل عمل الكاميرا لتجنب تعطل الاتصال
+    if (!localStream) {
+        alert("يرجى الانتظار حتى تظهر صورتك على الشاشة أولاً.");
+        return;
+    }
+
     room = roomInput.value.trim();
     if (!room) {
         alert("اكتب رقم الغرفة");
