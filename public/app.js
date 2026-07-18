@@ -1,17 +1,23 @@
 const socket = io();
 
+// عناصر الفيديو والغرفة
 const localVideo = document.getElementById("localVideo");
 const remoteVideo = document.getElementById("remoteVideo");
-
 const roomInput = document.getElementById("roomInput");
 const createBtn = document.getElementById("createBtn");
 const joinBtn = document.getElementById("joinBtn");
+const hangupBtn = document.getElementById("hangupBtn"); // زر الإنهاء
+
+// عناصر الدردشة
+const messageInput = document.getElementById("messageInput");
+const sendBtn = document.getElementById("sendBtn");
+const messagesDiv = document.getElementById("messages");
 
 let room = "";
 let localStream;
 let peerConnection;
 
-// إضافة خوادم TURN و STUN لضمان عمل الاتصال على كافة الشبكات
+// إعدادات الاتصال (TURN/STUN)
 const configuration = {
     iceServers: [
         { urls: "stun:stun.l.google.com:19302" },
@@ -36,60 +42,87 @@ const configuration = {
 
 async function startCamera() {
     try {
-        localStream = await navigator.mediaDevices.getUserMedia({
-            video: true,
-            audio: true
-        });
+        localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
         localVideo.srcObject = localStream;
     } catch (err) {
         console.error(err);
-        alert("يرجى السماح بالوصول للكاميرا والميكروفون لتتمكن من الاتصال.");
+        alert("يرجى السماح بالوصول للكاميرا والميكروفون.");
     }
 }
 
 startCamera();
 
+// --- منطق الغرف ---
 createBtn.onclick = () => {
-    // منع إنشاء الاتصال قبل عمل الكاميرا لتجنب الشاشة السوداء
-    if (!localStream) {
-        alert("يرجى الانتظار حتى تظهر صورتك على الشاشة أولاً.");
-        return;
-    }
-
+    if (!localStream) { alert("يرجى الانتظار حتى تظهر صورتك."); return; }
     room = roomInput.value.trim();
-    if (!room) {
-        alert("اكتب رقم الغرفة");
-        return;
-    }
+    if (!room) { alert("اكتب رقم الغرفة"); return; }
     socket.emit("join-room", room);
 };
 
 joinBtn.onclick = () => {
-    // منع الانضمام قبل عمل الكاميرا لتجنب تعطل الاتصال
-    if (!localStream) {
-        alert("يرجى الانتظار حتى تظهر صورتك على الشاشة أولاً.");
-        return;
-    }
-
+    if (!localStream) { alert("يرجى الانتظار حتى تظهر صورتك."); return; }
     room = roomInput.value.trim();
-    if (!room) {
-        alert("اكتب رقم الغرفة");
-        return;
-    }
+    if (!room) { alert("اكتب رقم الغرفة"); return; }
     socket.emit("join-room", room);
 };
 
+// --- منطق إنهاء المكالمة ---
+function endCall() {
+    if (peerConnection) {
+        peerConnection.close();
+        peerConnection = null;
+    }
+    if (localStream) {
+        localStream.getTracks().forEach(track => track.stop());
+        localVideo.srcObject = null;
+    }
+    remoteVideo.srcObject = null;
+    if (room) {
+        socket.emit("hangup", room);
+    }
+    console.log("تم إنهاء المكالمة");
+    alert("تم إنهاء المكالمة");
+}
+
+hangupBtn.onclick = endCall;
+
+socket.on("hangup", () => {
+    if (peerConnection) {
+        peerConnection.close();
+        peerConnection = null;
+    }
+    remoteVideo.srcObject = null;
+    alert("قام الطرف الآخر بإنهاء المكالمة");
+});
+
+// --- منطق الدردشة النصية ---
+sendBtn.onclick = () => {
+    const message = messageInput.value.trim();
+    if (message && room) {
+        const msgElement = document.createElement("div");
+        msgElement.innerText = "أنت: " + message;
+        messagesDiv.appendChild(msgElement);
+        socket.emit("send-message", { room, message });
+        messageInput.value = "";
+    }
+};
+
+socket.on("receive-message", (message) => {
+    const msgElement = document.createElement("div");
+    msgElement.innerText = "صديقي: " + message;
+    messagesDiv.appendChild(msgElement);
+});
+
+// --- منطق الاتصال المرئي ---
 function createPeerConnection() {
     peerConnection = new RTCPeerConnection(configuration);
-
     localStream.getTracks().forEach(track => {
         peerConnection.addTrack(track, localStream);
     });
-
     peerConnection.ontrack = (event) => {
         remoteVideo.srcObject = event.streams[0];
     };
-
     peerConnection.onicecandidate = (event) => {
         if (event.candidate) {
             socket.emit("candidate", event.candidate);
@@ -97,13 +130,8 @@ function createPeerConnection() {
     };
 }
 
-socket.on("created", () => {
-    console.log("تم إنشاء الغرفة، بانتظار الطرف الآخر...");
-});
-
-socket.on("joined", () => {
-    console.log("تم الانضمام للغرفة بنجاح");
-});
+socket.on("created", () => console.log("تم إنشاء الغرفة"));
+socket.on("joined", () => console.log("تم الانضمام للغرفة"));
 
 socket.on("ready", async () => {
     createPeerConnection();
@@ -115,7 +143,6 @@ socket.on("ready", async () => {
 socket.on("offer", async (offer) => {
     if (!peerConnection) createPeerConnection();
     await peerConnection.setRemoteDescription(offer);
-    
     const answer = await peerConnection.createAnswer();
     await peerConnection.setLocalDescription(answer);
     socket.emit("answer", answer);

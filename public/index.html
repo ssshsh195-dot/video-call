@@ -17,48 +17,30 @@
     <h2>📹 مكالمة فيديو</h2>
 
     <div class="room">
-
-        <input
-            id="roomInput"
-            placeholder="رقم الغرفة">
-
-        <button id="createBtn">
-            إنشاء غرفة
-        </button>
-
-        <button id="joinBtn">
-            انضمام
-        </button>
-
+        <input id="roomInput" placeholder="رقم الغرفة">
+        <button id="createBtn">إنشاء غرفة</button>
+        <button id="joinBtn">انضمام</button>
+        <!-- زر إنهاء المكالمة المضاف -->
+        <button id="hangupBtn" style="background-color: #ff4d4d; color: white;">إنهاء المكالمة</button>
     </div>
 
     <div class="videos">
-
         <div>
-
             <h3>أنا</h3>
-
-            <video
-                id="localVideo"
-                autoplay
-                muted
-                playsinline>
-            </video>
-
+            <video id="localVideo" autoplay muted playsinline></video>
         </div>
-
         <div>
-
             <h3>الطرف الآخر</h3>
-
-            <video
-                id="remoteVideo"
-                autoplay
-                playsinline>
-            </video>
-
+            <video id="remoteVideo" autoplay playsinline></video>
         </div>
+    </div>
 
+    <!-- واجهة الدردشة المضافة -->
+    <div id="chat-container" style="margin-top: 20px; border-top: 1px solid #ccc; padding-top: 10px;">
+        <h3>الدردشة</h3>
+        <div id="messages" style="height: 150px; overflow-y: scroll; border: 1px solid #ddd; padding: 10px; margin-bottom: 10px; background: #f9f9f9;"></div>
+        <input type="text" id="messageInput" placeholder="اكتب رسالتك...">
+        <button id="sendBtn">إرسال</button>
     </div>
 
 </div>

@@ -14,14 +14,14 @@ app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// مخزن لحفظ رقم الغرفة الخاص بكل مستخدم (Socket ID -> Room Name)
+// مخزن لحفظ رقم الغرفة الخاص بكل مستخدم
 const socketRoomMap = {};
 
 io.on("connection", (socket) => {
 
     socket.on("join-room", room => {
         socket.join(room);
-        socketRoomMap[socket.id] = room; // حفظ الغرفة التي دخلها المستخدم
+        socketRoomMap[socket.id] = room;
 
         const clients = io.sockets.adapter.rooms.get(room);
         const count = clients ? clients.size : 0;
@@ -34,26 +34,30 @@ io.on("connection", (socket) => {
         }
     });
 
-    // إخراج الأحداث خارج join-room لحل مشكلة الـ Memory Leak وتوقف السيرفر
+    // أحداث الاتصال المرئي
     socket.on("offer", offer => {
         const room = socketRoomMap[socket.id];
-        if (room) {
-            socket.to(room).emit("offer", offer);
-        }
+        if (room) socket.to(room).emit("offer", offer);
     });
 
     socket.on("answer", answer => {
         const room = socketRoomMap[socket.id];
-        if (room) {
-            socket.to(room).emit("answer", answer);
-        }
+        if (room) socket.to(room).emit("answer", answer);
     });
 
     socket.on("candidate", candidate => {
         const room = socketRoomMap[socket.id];
-        if (room) {
-            socket.to(room).emit("candidate", candidate);
-        }
+        if (room) socket.to(room).emit("candidate", candidate);
+    });
+
+    // أحداث الدردشة النصية الجديدة
+    socket.on("send-message", ({ room, message }) => {
+        socket.to(room).emit("receive-message", message);
+    });
+
+    // حدث إنهاء المكالمة الجديد
+    socket.on("hangup", (room) => {
+        socket.to(room).emit("hangup");
     });
 
     // تنظيف البيانات عند خروج المستخدم
